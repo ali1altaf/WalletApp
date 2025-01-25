@@ -18,7 +18,7 @@ class DatabaseHelper {
     final path = await getDatabasesPath();
     return openDatabase(
       join(path, 'accounts.db'),
-      version: 2, // Increment version to trigger onUpgrade
+      version: 3, // Increment version to trigger onUpgrade
       onCreate: _createDatabase,
       onUpgrade: _upgradeDatabase,
     );
@@ -42,28 +42,30 @@ class DatabaseHelper {
         amount REAL NOT NULL,
         date TEXT NOT NULL,
         type TEXT NOT NULL, -- 'credit' or 'debit'
+        category_id INTEGER NOT NULL DEFAULT 1
         FOREIGN KEY (account_id) REFERENCES accounts (id)
+        FOREIGN KEY (category_id) REFERENCES CategoryTable (id)
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE CategoryTable (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT UNIQUE
       )
     ''');
   }
 
   /// Upgrade the database schema
-  Future<void> _upgradeDatabase(
-      Database db, int oldVersion, int newVersion) async {
+  Future<void> _upgradeDatabase(Database db, int oldVersion, int newVersion) async {
     if (oldVersion < 2) {
       await db.execute('''
-        CREATE TABLE transactions (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          account_id INTEGER NOT NULL,
-          description TEXT NULL,
-          amount REAL NOT NULL,
-          date TEXT NOT NULL,
-          type TEXT NOT NULL, -- 'credit' or 'debit'
-          FOREIGN KEY (account_id) REFERENCES accounts (id)
-        )
+        ALTER TABLE transactions ADD COLUMN category_id INTEGER NOT NULL DEFAULT 1 REFERENCES CategoryTable (id)
       ''');
+
     }
   }
+
 
   /// Fetch recent transactions
   Future<List<Map<String, dynamic>>> getLastTransactions(int count) async {
@@ -105,8 +107,8 @@ class DatabaseHelper {
   }
 
   /// Insert a new transaction
-  Future<int> insertTransaction(int accountId, String description,
-      double amount, String date, String type) async {
+  Future<int> insertTransaction(int accountId, String description, double amount, String date, String type, int categoryId,
+      ) async {
     final db = await database;
     return db.insert('transactions', {
       'account_id': accountId,
@@ -114,8 +116,10 @@ class DatabaseHelper {
       'amount': amount,
       'date': date,
       'type': type,
+      'category_id': categoryId,
     });
   }
+
 
   /// Fetch transactions for a specific account
   Future<List<Map<String, dynamic>>> getTransactionsByAccount(
@@ -134,4 +138,56 @@ class DatabaseHelper {
     final db = await database;
     return db.delete('transactions', where: 'id = ?', whereArgs: [id]);
   }
+
+
+  /// Initialize default categories
+  Future<void> initializeDefaultCategories() async {
+    final db = await database;
+
+    // List of default categories
+    List<Map<String, dynamic>> defaultCategories = [
+      {'name': 'Food & Drinks'},
+      {'name': 'Shopping'},
+      {'name': 'Housing'},
+      {'name': 'Transportation'},
+      {'name': 'Vehicle'},
+      {'name': 'Life & Entertainment'},
+      {'name': 'Communication & PC'},
+      {'name': 'Financial Expense'},
+      {'name': 'Investment'},
+      {'name': 'Income'},
+      {'name': 'Transfer'},
+    ];
+
+    // Insert default categories if they don't already exist
+    for (var category in defaultCategories) {
+      try {
+        await db.insert(
+          'CategoryTable',
+          category,
+          conflictAlgorithm: ConflictAlgorithm.ignore,
+        );
+      } catch (e) {
+        // Handle insertion error (if any)
+      }
+    }
+  }
+
+
+  /// insert new categories
+  Future<int> insertCategory(String name) async {
+    final db = await database;
+    return db.insert(
+      'CategoryTable',
+      {'name': name},
+      conflictAlgorithm: ConflictAlgorithm.ignore,
+    );
+  }
+
+  /// Fetch all categories
+  Future<List<Map<String, dynamic>>> getCategories() async {
+    final db = await database;
+    return db.query('CategoryTable');
+  }
+
 }

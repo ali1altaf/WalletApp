@@ -9,15 +9,25 @@ class AccountListScreen extends StatefulWidget {
 class _AccountListScreenState extends State<AccountListScreen> {
   List<Map<String, dynamic>> _accounts = [];
   List<Map<String, dynamic>> _transactions = [];
+  List<Map<String, dynamic>> _categories = [];
   bool _isLoading = true; // To manage loading state
+
 
   @override
   void initState() {
     super.initState();
-    _fetchAccounts();
-    _fetchTransactions();
+    _initializeApp();
   }
 
+  void _initializeApp() async {
+    await DatabaseHelper.instance.initializeDefaultCategories();
+    _fetchAccounts();
+    _fetchTransactions();
+    _fetchCategories(); // Fetch categories for the dropdown
+    setState(() {
+      _isLoading = false; // Stop loading after fetching
+    });
+  }
   Future<void> _fetchAccounts() async {
     final accounts = await DatabaseHelper.instance.getAccounts();
     setState(() {
@@ -25,11 +35,20 @@ class _AccountListScreenState extends State<AccountListScreen> {
     });
   }
 
+
   Future<void> _fetchTransactions() async {
     final transactions = await DatabaseHelper.instance
         .getLastTransactions(4); // Fetch the last 4 transactions
     setState(() {
       _transactions = transactions;
+      _isLoading = false; // Stop loading after fetching
+    });
+  }
+
+  Future<void> _fetchCategories() async {
+    final Categories = await DatabaseHelper.instance.getCategories();
+    setState(() {
+      _categories = Categories;
       _isLoading = false; // Stop loading after fetching
     });
   }
@@ -116,12 +135,53 @@ class _AccountListScreenState extends State<AccountListScreen> {
     );
   }
 
+  void _showAddCategoryDialog() {
+    TextEditingController _customCategoryController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('Add Custom Category'),
+          content: TextField(
+            controller: _customCategoryController,
+            decoration: InputDecoration(labelText: 'Category Name'),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () async {
+                String categoryName = _customCategoryController.text.trim();
+                if (categoryName.isNotEmpty) {
+                  await DatabaseHelper.instance.insertCategory(categoryName);
+                  _fetchCategories();
+                  Navigator.pop(context);
+                }
+              },
+              child: Text('Add'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+
+
+
   void _transactionDialog() {
     int? selectedAccountId;
+    int? selectedCategoryId;
     int? destinationAccountId;
     TextEditingController _amountController = TextEditingController();
-    String transactionType = "Expense";
     TextEditingController _descriptionController = TextEditingController();
+    TextEditingController _customCategoryController = TextEditingController();
+    String transactionType = "Expense";
+
 
     showDialog(
       context: context,
@@ -130,72 +190,95 @@ class _AccountListScreenState extends State<AccountListScreen> {
           builder: (context, setState) {
             return AlertDialog(
               title: Text('Add Transaction'),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  DropdownButtonFormField<int>(
-                    value: selectedAccountId,
-                    items: _accounts
-                        .map((account) => DropdownMenuItem<int>(
-                              value: account['id'],
-                              child: Text(account['name']),
-                            ))
-                        .toList(),
-                    onChanged: (value) {
-                      setState(() {
-                        selectedAccountId = value;
-                      });
-                    },
-                    hint: Text('Select Account'),
-                  ),
-                  DropdownButtonFormField<String>(
-                    value: transactionType,
-                    items: ["Expense", "Income", "Transfer"]
-                        .map((type) => DropdownMenuItem<String>(
-                              value: type,
-                              child: Text(type),
-                            ))
-                        .toList(),
-                    onChanged: (value) {
-                      setState(() {
-                        transactionType = value!;
-                        if (transactionType != "Transfer") {
-                          destinationAccountId = null;
-                        }
-                      });
-                    },
-                    hint: Text('Select Transaction Type'),
-                  ),
-                  if (transactionType == "Transfer")
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
                     DropdownButtonFormField<int>(
-                      value: destinationAccountId,
+                      value: selectedAccountId,
                       items: _accounts
-                          .where(
-                              (account) => account['id'] != selectedAccountId)
                           .map((account) => DropdownMenuItem<int>(
-                                value: account['id'],
-                                child: Text(account['name']),
-                              ))
+                        value: account['id'],
+                        child: Text(account['name']),
+                      ))
                           .toList(),
                       onChanged: (value) {
                         setState(() {
-                          destinationAccountId = value!;
+                          selectedAccountId = value;
                         });
                       },
-                      hint: Text('Select Destination Account'),
+                      hint: Text('Select Account'),
                     ),
-                  TextField(
-                    controller: _amountController,
-                    keyboardType: TextInputType.number,
-                    decoration:
-                        InputDecoration(labelText: 'Transaction Amount'),
-                  ),
-                  TextField(
-                    controller: _descriptionController,
-                    decoration:
-                        InputDecoration(labelText: 'Transaction Description'),
-                  ),
-                ],
+                    DropdownButtonFormField<String>(
+                      value: transactionType,
+                      items: ["Expense", "Income", "Transfer"]
+                          .map((type) => DropdownMenuItem<String>(
+                        value: type,
+                        child: Text(type),
+                      ))
+                          .toList(),
+                      onChanged: (value) {
+                        setState(() {
+                          transactionType = value!;
+                          if (transactionType != "Transfer") {
+                            destinationAccountId = null;
+                          }
+                        });
+                      },
+                      hint: Text('Select Transaction Type'),
+                    ),
+                    if (transactionType == "Transfer")
+                      DropdownButtonFormField<int>(
+                        value: destinationAccountId,
+                        items: _accounts
+                            .where(
+                                (account) => account['id'] != selectedAccountId)
+                            .map((account) => DropdownMenuItem<int>(
+                          value: account['id'],
+                          child: Text(account['name']),
+                        ))
+                            .toList(),
+                        onChanged: (value) {
+                          setState(() {
+                            destinationAccountId = value!;
+                          });
+                        },
+                        hint: Text('Select Destination Account'),
+                      ),
+
+                    TextField(
+                      controller: _amountController,
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(labelText: 'Transaction Amount'),
+                    ),
+
+                    DropdownButtonFormField<int>(
+                      value: selectedCategoryId,
+                      items: _categories
+                          .map((category) => DropdownMenuItem<int>(
+                        value: category['id'],
+                        child: Text(category['name']),
+                      ))
+                          .toList(),
+                      onChanged: (value) {
+                        setState(() {
+                          selectedCategoryId = value;
+                        });
+                      },
+                      hint: Text('Select Category'),
+                    ),
+                    TextField(
+                      controller: _descriptionController,
+                      decoration: InputDecoration(labelText: 'Transaction Description'),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        _showAddCategoryDialog();
+                      },
+                      child: Text('Add Custom Category'),
+                    ),
+                  ],
+                ),
               ),
               actions: [
                 TextButton(
@@ -207,44 +290,41 @@ class _AccountListScreenState extends State<AccountListScreen> {
                 TextButton(
                   onPressed: () async {
                     if (selectedAccountId != null &&
-                        _amountController.text.isNotEmpty &&
-                        (transactionType != "Transfer" ||
-                            destinationAccountId != null)) {
-                      double transactionAmount =
-                          double.parse(_amountController.text);
-
+                        selectedCategoryId != null &&
+                        _amountController.text.isNotEmpty) {
+                      double transactionAmount = double.parse(_amountController.text);
                       String description = _descriptionController.text;
+                      String date = DateTime.now().toIso8601String();
 
                       // Insert transaction record into the database
-                      String date =
-                          DateTime.now().toIso8601String(); // Current date
                       await DatabaseHelper.instance.insertTransaction(
                         selectedAccountId!,
                         description,
                         transactionAmount,
                         date,
                         transactionType,
+                        selectedCategoryId!,
                       );
 
                       if (transactionType == "Expense") {
                         final account = _accounts.firstWhere(
-                            (account) => account['id'] == selectedAccountId);
+                                (account) => account['id'] == selectedAccountId);
                         double updatedBalance =
                             account['balance'] - transactionAmount;
                         await _updateBalance(
                             selectedAccountId!, updatedBalance);
                       } else if (transactionType == "Income") {
                         final account = _accounts.firstWhere(
-                            (account) => account['id'] == selectedAccountId);
+                                (account) => account['id'] == selectedAccountId);
                         double updatedBalance =
                             account['balance'] + transactionAmount;
                         await _updateBalance(
                             selectedAccountId!, updatedBalance);
                       } else if (transactionType == "Transfer") {
                         final sourceAccount = _accounts.firstWhere(
-                            (account) => account['id'] == selectedAccountId);
+                                (account) => account['id'] == selectedAccountId);
                         final destinationAccount = _accounts.firstWhere(
-                            (account) => account['id'] == destinationAccountId);
+                                (account) => account['id'] == destinationAccountId);
 
                         double updatedSourceBalance =
                             sourceAccount['balance'] - transactionAmount;
@@ -256,8 +336,11 @@ class _AccountListScreenState extends State<AccountListScreen> {
                         await _updateBalance(
                             destinationAccountId!, updatedDestinationBalance);
                       }
+
+                      // Update account balance
                       _fetchTransactions();
                       _fetchAccounts();
+
                       Navigator.pop(context);
                     }
                   },
@@ -381,6 +464,12 @@ class _AccountListScreenState extends State<AccountListScreen> {
             label: Text('Account'),
             icon: Icon(Icons.add),
             heroTag: 'addAccount',
+          ),
+          SizedBox(height: 10),
+          FloatingActionButton.extended(
+            onPressed: _showAddCategoryDialog,
+            label: Text('Category'),
+            icon: Icon(Icons.add),
           ),
         ],
       ),
