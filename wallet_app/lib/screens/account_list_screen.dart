@@ -70,7 +70,6 @@ class _AccountListScreenState extends State<AccountListScreen> {
       },
     );
   }
-
   Future<void> _deleteAccount(int id) async {
     await DatabaseHelper.instance.deleteAccount(id);
     _fetchAccounts();
