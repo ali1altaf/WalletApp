@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../database_helper.dart';
+import 'package:flutter_speed_dial/flutter_speed_dial.dart';
 
 class AccountListScreen extends StatefulWidget {
   @override
@@ -10,6 +11,8 @@ class _AccountListScreenState extends State<AccountListScreen> {
   List<Map<String, dynamic>> _accounts = [];
   List<Map<String, dynamic>> _transactions = [];
   List<Map<String, dynamic>> _categories = [];
+
+  int? _defaultAccountId;
   bool _isLoading = true; // To manage loading state
 
 
@@ -41,6 +44,9 @@ class _AccountListScreenState extends State<AccountListScreen> {
         .getLastTransactions(4); // Fetch the last 4 transactions
     setState(() {
       _transactions = transactions;
+      if (transactions.isNotEmpty) {
+        _defaultAccountId = transactions[0]['account_id']; // Set the default account to the last used account
+      }
       _isLoading = false; // Stop loading after fetching
     });
   }
@@ -174,13 +180,16 @@ class _AccountListScreenState extends State<AccountListScreen> {
 
 
   void _transactionDialog() {
-    int? selectedAccountId;
+    int? selectedAccountId =_defaultAccountId;
     int? selectedCategoryId;
     int? destinationAccountId;
     TextEditingController _amountController = TextEditingController();
     TextEditingController _descriptionController = TextEditingController();
     TextEditingController _customCategoryController = TextEditingController();
     String transactionType = "Expense";
+    String _amountLabelText = 'Transaction Amount';
+    String _CategoryLabelText = 'Select Category';
+    String _AccountLabelText = 'Select Account';
 
 
     showDialog(
@@ -207,7 +216,7 @@ class _AccountListScreenState extends State<AccountListScreen> {
                           selectedAccountId = value;
                         });
                       },
-                      hint: Text('Select Account'),
+                      hint: Text(_AccountLabelText),
                     ),
                     DropdownButtonFormField<String>(
                       value: transactionType,
@@ -246,10 +255,11 @@ class _AccountListScreenState extends State<AccountListScreen> {
                         hint: Text('Select Destination Account'),
                       ),
 
+
                     TextField(
                       controller: _amountController,
                       keyboardType: TextInputType.number,
-                      decoration: InputDecoration(labelText: 'Transaction Amount'),
+                      decoration: InputDecoration(labelText: _amountLabelText),
                     ),
 
                     DropdownButtonFormField<int>(
@@ -265,7 +275,7 @@ class _AccountListScreenState extends State<AccountListScreen> {
                           selectedCategoryId = value;
                         });
                       },
-                      hint: Text('Select Category'),
+                      hint: Text(_CategoryLabelText),
                     ),
                     TextField(
                       controller: _descriptionController,
@@ -289,6 +299,7 @@ class _AccountListScreenState extends State<AccountListScreen> {
                 ),
                 TextButton(
                   onPressed: () async {
+
                     if (selectedAccountId != null &&
                         selectedCategoryId != null &&
                         _amountController.text.isNotEmpty) {
@@ -343,6 +354,33 @@ class _AccountListScreenState extends State<AccountListScreen> {
 
                       Navigator.pop(context);
                     }
+
+                    else{
+
+                      if (selectedAccountId == null ) {
+                        setState(() {
+                          _AccountLabelText='Account is required';
+                        });
+                        return;
+                      }
+
+                      else if (_amountController.text.isEmpty) {
+                        setState(() {
+                          _amountLabelText = 'Amount is required!'; // Update label text to error message
+                        });
+                        return;
+                      }
+
+                      else if (selectedCategoryId == null) {
+                        setState(() {
+                          _CategoryLabelText = 'Category is required';
+                        });
+                        return;
+                      }
+
+                    }
+
+
                   },
                   child: Text('Add Transaction'),
                 ),
@@ -424,52 +462,54 @@ class _AccountListScreenState extends State<AccountListScreen> {
                 _isLoading
                     ? Center(child: CircularProgressIndicator())
                     : Expanded(
-                        child: ListView.builder(
-                          itemCount: _transactions.length,
-                          itemBuilder: (context, index) {
-                            final transaction = _transactions[index];
-                            return Card(
-                              margin: EdgeInsets.symmetric(
-                                  horizontal: 10, vertical: 5),
-                              elevation: 2,
-                              child: ListTile(
-                                title: Text(transaction['type']),
-                                subtitle: Text(
-                                    'Amount: ₹${transaction['amount'].toStringAsFixed(2)}'),
-                                trailing: Text(
-                                  transaction['date'],
-                                  style: TextStyle(color: Colors.grey),
-                                ),
-                              ),
-                            );
-                          },
+                  child: ListView.builder(
+                    itemCount: _transactions.length,
+                    itemBuilder: (context, index) {
+                      final transaction = _transactions[index];
+                      return Card(
+                        margin: EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 5),
+                        elevation: 2,
+                        child: ListTile(
+                          title: Text(transaction['type']),
+                          subtitle: Text(
+                              'Amount: ₹${transaction['amount'].toStringAsFixed(2)}'),
+                          trailing: Text(
+                            transaction['date'],
+                            style: TextStyle(color: Colors.grey),
+                          ),
                         ),
-                      ),
+                      );
+                    },
+                  ),
+                ),
               ],
             ),
           ),
         ],
       ),
-      floatingActionButton: Column(
-        mainAxisSize: MainAxisSize.min,
+      floatingActionButton: SpeedDial(
+        animatedIcon: AnimatedIcons.add_event,
+        animatedIconTheme: IconThemeData(size: 22.0),
+        backgroundColor: Colors.blue,
+        foregroundColor: Colors.white,
+        curve: Curves.bounceIn,
+        elevation: 8.0,
         children: [
-          FloatingActionButton.extended(
-            onPressed: _transactionDialog,
-            label: Text('Transaction'),
-            icon: Icon(Icons.add),
+          SpeedDialChild(
+            child: Icon(Icons.account_balance),
+            label: 'Add Account',
+            onTap: _addAccountDialog,
           ),
-          SizedBox(height: 10),
-          FloatingActionButton.extended(
-            onPressed: _addAccountDialog,
-            label: Text('Account'),
-            icon: Icon(Icons.add),
-            heroTag: 'addAccount',
+          SpeedDialChild(
+            child: Icon(Icons.category),
+            label: 'Add Category',
+            onTap: _showAddCategoryDialog,
           ),
-          SizedBox(height: 10),
-          FloatingActionButton.extended(
-            onPressed: _showAddCategoryDialog,
-            label: Text('Category'),
-            icon: Icon(Icons.add),
+          SpeedDialChild(
+            child: Icon(Icons.currency_rupee),
+            label: 'Add Transaction',
+            onTap: _transactionDialog,
           ),
         ],
       ),
