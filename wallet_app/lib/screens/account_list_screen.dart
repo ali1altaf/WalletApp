@@ -9,7 +9,7 @@ class AccountListScreen extends StatefulWidget {
 class _AccountListScreenState extends State<AccountListScreen> {
   List<Map<String, dynamic>> _accounts = [];
   List<Map<String, dynamic>> _transactions = [];
-  bool _isLoading = true;  // To manage loading state
+  bool _isLoading = true; // To manage loading state
 
   @override
   void initState() {
@@ -26,10 +26,11 @@ class _AccountListScreenState extends State<AccountListScreen> {
   }
 
   Future<void> _fetchTransactions() async {
-    final transactions = await DatabaseHelper.instance.getLastTransactions(4); // Fetch the last 4 transactions
+    final transactions = await DatabaseHelper.instance
+        .getLastTransactions(4); // Fetch the last 4 transactions
     setState(() {
       _transactions = transactions;
-      _isLoading = false;  // Stop loading after fetching
+      _isLoading = false; // Stop loading after fetching
     });
   }
 
@@ -70,6 +71,7 @@ class _AccountListScreenState extends State<AccountListScreen> {
       },
     );
   }
+
   Future<void> _deleteAccount(int id) async {
     await DatabaseHelper.instance.deleteAccount(id);
     _fetchAccounts();
@@ -82,7 +84,7 @@ class _AccountListScreenState extends State<AccountListScreen> {
 
   void _changeBalanceDialog(int id, double currentBalance) {
     TextEditingController _balanceController =
-    TextEditingController(text: currentBalance.toString());
+        TextEditingController(text: currentBalance.toString());
     showDialog(
       context: context,
       builder: (context) {
@@ -135,9 +137,9 @@ class _AccountListScreenState extends State<AccountListScreen> {
                     value: selectedAccountId,
                     items: _accounts
                         .map((account) => DropdownMenuItem<int>(
-                      value: account['id'],
-                      child: Text(account['name']),
-                    ))
+                              value: account['id'],
+                              child: Text(account['name']),
+                            ))
                         .toList(),
                     onChanged: (value) {
                       setState(() {
@@ -150,9 +152,9 @@ class _AccountListScreenState extends State<AccountListScreen> {
                     value: transactionType,
                     items: ["Expense", "Income", "Transfer"]
                         .map((type) => DropdownMenuItem<String>(
-                      value: type,
-                      child: Text(type),
-                    ))
+                              value: type,
+                              child: Text(type),
+                            ))
                         .toList(),
                     onChanged: (value) {
                       setState(() {
@@ -168,11 +170,12 @@ class _AccountListScreenState extends State<AccountListScreen> {
                     DropdownButtonFormField<int>(
                       value: destinationAccountId,
                       items: _accounts
-                          .where((account) => account['id'] != selectedAccountId)
+                          .where(
+                              (account) => account['id'] != selectedAccountId)
                           .map((account) => DropdownMenuItem<int>(
-                        value: account['id'],
-                        child: Text(account['name']),
-                      ))
+                                value: account['id'],
+                                child: Text(account['name']),
+                              ))
                           .toList(),
                       onChanged: (value) {
                         setState(() {
@@ -184,11 +187,13 @@ class _AccountListScreenState extends State<AccountListScreen> {
                   TextField(
                     controller: _amountController,
                     keyboardType: TextInputType.number,
-                    decoration: InputDecoration(labelText: 'Transaction Amount'),
+                    decoration:
+                        InputDecoration(labelText: 'Transaction Amount'),
                   ),
                   TextField(
                     controller: _descriptionController,
-                    decoration: InputDecoration(labelText: 'Transaction Description'),
+                    decoration:
+                        InputDecoration(labelText: 'Transaction Description'),
                   ),
                 ],
               ),
@@ -206,12 +211,13 @@ class _AccountListScreenState extends State<AccountListScreen> {
                         (transactionType != "Transfer" ||
                             destinationAccountId != null)) {
                       double transactionAmount =
-                      double.parse(_amountController.text);
+                          double.parse(_amountController.text);
 
-                      String description =_descriptionController.text;
+                      String description = _descriptionController.text;
 
                       // Insert transaction record into the database
-                      String date = DateTime.now().toIso8601String(); // Current date
+                      String date =
+                          DateTime.now().toIso8601String(); // Current date
                       await DatabaseHelper.instance.insertTransaction(
                         selectedAccountId!,
                         description,
@@ -222,21 +228,23 @@ class _AccountListScreenState extends State<AccountListScreen> {
 
                       if (transactionType == "Expense") {
                         final account = _accounts.firstWhere(
-                                (account) => account['id'] == selectedAccountId);
+                            (account) => account['id'] == selectedAccountId);
                         double updatedBalance =
                             account['balance'] - transactionAmount;
-                        await _updateBalance(selectedAccountId!, updatedBalance);
+                        await _updateBalance(
+                            selectedAccountId!, updatedBalance);
                       } else if (transactionType == "Income") {
                         final account = _accounts.firstWhere(
-                                (account) => account['id'] == selectedAccountId);
+                            (account) => account['id'] == selectedAccountId);
                         double updatedBalance =
                             account['balance'] + transactionAmount;
-                        await _updateBalance(selectedAccountId!, updatedBalance);
+                        await _updateBalance(
+                            selectedAccountId!, updatedBalance);
                       } else if (transactionType == "Transfer") {
                         final sourceAccount = _accounts.firstWhere(
-                                (account) => account['id'] == selectedAccountId);
+                            (account) => account['id'] == selectedAccountId);
                         final destinationAccount = _accounts.firstWhere(
-                                (account) => account['id'] == destinationAccountId);
+                            (account) => account['id'] == destinationAccountId);
 
                         double updatedSourceBalance =
                             sourceAccount['balance'] - transactionAmount;
@@ -333,27 +341,27 @@ class _AccountListScreenState extends State<AccountListScreen> {
                 _isLoading
                     ? Center(child: CircularProgressIndicator())
                     : Expanded(
-                  child: ListView.builder(
-                    itemCount: _transactions.length,
-                    itemBuilder: (context, index) {
-                      final transaction = _transactions[index];
-                      return Card(
-                        margin: EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 5),
-                        elevation: 2,
-                        child: ListTile(
-                          title: Text(transaction['type']),
-                          subtitle: Text(
-                              'Amount: ₹${transaction['amount'].toStringAsFixed(2)}'),
-                          trailing: Text(
-                            transaction['date'],
-                            style: TextStyle(color: Colors.grey),
-                          ),
+                        child: ListView.builder(
+                          itemCount: _transactions.length,
+                          itemBuilder: (context, index) {
+                            final transaction = _transactions[index];
+                            return Card(
+                              margin: EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 5),
+                              elevation: 2,
+                              child: ListTile(
+                                title: Text(transaction['type']),
+                                subtitle: Text(
+                                    'Amount: ₹${transaction['amount'].toStringAsFixed(2)}'),
+                                trailing: Text(
+                                  transaction['date'],
+                                  style: TextStyle(color: Colors.grey),
+                                ),
+                              ),
+                            );
+                          },
                         ),
-                      );
-                    },
-                  ),
-                ),
+                      ),
               ],
             ),
           ),

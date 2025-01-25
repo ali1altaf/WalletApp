@@ -48,7 +48,8 @@ class DatabaseHelper {
   }
 
   /// Upgrade the database schema
-  Future<void> _upgradeDatabase(Database db, int oldVersion, int newVersion) async {
+  Future<void> _upgradeDatabase(
+      Database db, int oldVersion, int newVersion) async {
     if (oldVersion < 2) {
       await db.execute('''
         CREATE TABLE transactions (
@@ -104,7 +105,8 @@ class DatabaseHelper {
   }
 
   /// Insert a new transaction
-  Future<int> insertTransaction(int accountId, String description, double amount, String date, String type) async {
+  Future<int> insertTransaction(int accountId, String description,
+      double amount, String date, String type) async {
     final db = await database;
     return db.insert('transactions', {
       'account_id': accountId,
@@ -116,7 +118,8 @@ class DatabaseHelper {
   }
 
   /// Fetch transactions for a specific account
-  Future<List<Map<String, dynamic>>> getTransactionsByAccount(int accountId) async {
+  Future<List<Map<String, dynamic>>> getTransactionsByAccount(
+      int accountId) async {
     final db = await database;
     return db.query(
       'transactions',
