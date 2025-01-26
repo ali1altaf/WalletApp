@@ -59,6 +59,7 @@ class _AccountListScreenState extends State<AccountListScreen> {
     });
   }
 
+
   Future<void> _addAccountDialog() async {
     TextEditingController _nameController = TextEditingController();
     showDialog(
@@ -96,6 +97,7 @@ class _AccountListScreenState extends State<AccountListScreen> {
       },
     );
   }
+
 
   Future<void> _deleteAccount(int id) async {
     await DatabaseHelper.instance.deleteAccount(id);
@@ -185,7 +187,6 @@ class _AccountListScreenState extends State<AccountListScreen> {
     int? destinationAccountId;
     TextEditingController _amountController = TextEditingController();
     TextEditingController _descriptionController = TextEditingController();
-    TextEditingController _customCategoryController = TextEditingController();
     String transactionType = "Expense";
     String _amountLabelText = 'Transaction Amount';
     String _CategoryLabelText = 'Select Category';
