@@ -190,4 +190,43 @@ class DatabaseHelper {
     return db.query('CategoryTable');
   }
 
+  Future<Map<String, double>> getMonthlyExpensesByCategory() async {
+    final db = await database;
+
+    // Get the first and last days of the current month.
+    final currentDate = DateTime.now();
+    final firstDayOfMonth = DateTime(currentDate.year, currentDate.month, 1).toIso8601String();
+    final lastDayOfMonth = DateTime(currentDate.year, currentDate.month + 1, 0).toIso8601String();
+
+    // Query to get total expenses grouped by category for the current month
+    final result = await db.rawQuery('''
+    SELECT 
+      CategoryTable.name AS category_name,
+      SUM(transactions.amount) AS total_amount
+    FROM 
+      transactions
+    INNER JOIN 
+      CategoryTable
+    ON 
+      transactions.category_id = CategoryTable.id
+    WHERE 
+      transactions.date >= ? AND transactions.date <= ?
+    GROUP BY 
+      transactions.category_id
+  ''', [firstDayOfMonth, lastDayOfMonth]);
+
+
+    // Map the results into a readable format
+    final expensesByCategory = <String, double>{};
+    for (final row in result) {
+      expensesByCategory[row['category_name'] as String] = (row['total_amount'] as num).toDouble();
+    }
+
+
+    return expensesByCategory;
+  }
+
+
+
+
 }
