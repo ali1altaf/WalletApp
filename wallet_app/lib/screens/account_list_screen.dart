@@ -82,42 +82,97 @@ class _AccountListScreenState extends State<AccountListScreen> {
       return;
     }
 
+    final totalExpenses = _categoryExpenses.values.fold(0.0, (sum, amount) => sum + amount);
+
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
           title: Text('Monthly Expense Breakdown'),
-          content: Container(
-            height: 300,
-            width: 300,
-            child: PieChart(
-              PieChartData(
-                sections: _categoryExpenses.entries.map((entry) {
-                  final categoryName = entry.key;
-                  final amount = entry.value;
-                  return PieChartSectionData(
-                    color: Colors.primaries[
-                    _categories.indexWhere((c) => c['name'] == categoryName) %
-                        Colors.primaries.length],
-                    value: amount,
-                    title: "${categoryName}\n₹${amount.toStringAsFixed(2)}",
-                    titleStyle: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
+          content: StatefulBuilder(
+            builder: (context, setState) {
+              int? touchedIndex;
+              final entriesList = _categoryExpenses.entries.toList();
+
+              return Container(
+                height: MediaQuery.of(context).size.height * 0.6,
+                width: MediaQuery.of(context).size.width * 0.8,
+                child: Stack(
+                  children: [
+                    PieChart(
+                      PieChartData(
+                        pieTouchData: PieTouchData(
+                          touchCallback: (FlTouchEvent event, pieTouchResponse) {
+                            setState(() {
+                              if (!event.isInterestedForInteractions ||
+                                  pieTouchResponse == null ||
+                                  pieTouchResponse.touchedSection == null) {
+                                touchedIndex = null;
+                                return;
+                              }
+                              touchedIndex = pieTouchResponse.touchedSection!.touchedSectionIndex;
+                            });
+                          },
+                        ),
+                        sections: entriesList.asMap().entries.map((mapEntry) {
+                          final index = mapEntry.key;
+                          final entry = mapEntry.value;
+                          final isTouched = index == touchedIndex;
+                          final categoryName = entry.key;
+                          final amount = entry.value;
+                          final colorIndex = _categories.indexWhere((c) => c['name'] == categoryName);
+                          final color = colorIndex >= 0
+                              ? Colors.primaries[colorIndex % Colors.primaries.length]
+                              : Colors.grey;
+
+                          return PieChartSectionData(
+                            color: color,
+                            value: amount,
+                            title: isTouched ? '${categoryName}\n₹${amount.toStringAsFixed(2)}' : '',
+                            radius: isTouched ? 60 : 50,
+                            titleStyle: TextStyle(
+                              fontSize: isTouched ? 16 : 14,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          );
+                        }).toList(),
+                        sectionsSpace: 2,
+                        centerSpaceRadius: 100,
+                      ),
                     ),
-                  );
-                }).toList(),
-                sectionsSpace: 2,
-                centerSpaceRadius: 40,
-              ),
-            ),
+                    Positioned.fill(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            touchedIndex == null ? 'Total Expenses' : entriesList[touchedIndex!].key,
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context).primaryColor,
+                            ),
+                          ),
+                          SizedBox(height: 8),
+                          Text(
+                            '₹${touchedIndex == null ? totalExpenses.toStringAsFixed(2) : entriesList[touchedIndex!].value.toStringAsFixed(2)}',
+                            style: TextStyle(
+                              fontSize: 24,
+                              color: Colors.green[700],
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
           ),
           actions: [
             TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-              },
+              onPressed: () => Navigator.pop(context),
               child: Text('Close'),
             ),
           ],
