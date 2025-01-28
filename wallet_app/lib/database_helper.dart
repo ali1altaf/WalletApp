@@ -35,16 +35,18 @@ class DatabaseHelper {
     ''');
 
     await db.execute('''
-      CREATE TABLE transactions (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        account_id INTEGER NOT NULL,
-        description TEXT NULL,
-        amount REAL NOT NULL,
-        date TEXT NOT NULL,
-        type TEXT NOT NULL, -- 'credit' or 'debit'
-        category_id INTEGER NOT NULL DEFAULT 1
-        FOREIGN KEY (account_id) REFERENCES accounts (id)
-        FOREIGN KEY (category_id) REFERENCES CategoryTable (id)
+     CREATE TABLE transactions (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          account_id INTEGER NOT NULL,
+          description TEXT,
+          amount REAL NOT NULL,
+          date TEXT NOT NULL,
+          type TEXT NOT NULL, -- 'credit' or 'debit'
+          category_id INTEGER NOT NULL DEFAULT 1,
+          FOREIGN KEY (account_id) REFERENCES accounts (id),
+          FOREIGN KEY (category_id) REFERENCES CategoryTable (id)
+);
+
       )
     ''');
 
