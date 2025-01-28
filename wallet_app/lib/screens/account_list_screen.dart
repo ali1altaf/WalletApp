@@ -15,6 +15,7 @@ class _AccountListScreenState extends State<AccountListScreen> {
   List<Map<String, dynamic>> _transactions = [];
   List<Map<String, dynamic>> _categories = [];
   Map<String, double> _categoryExpenses = {};
+  List<Map<String, dynamic>> _subcategories = [];
   int? _defaultAccountId;
   bool _isLoading = true; // To manage loading state
   String? _selectedCategory;
@@ -57,12 +58,15 @@ class _AccountListScreenState extends State<AccountListScreen> {
   }
 
   Future<void> _fetchCategories() async {
-    final Categories = await DatabaseHelper.instance.getCategories();
+    final subcategories = await DatabaseHelper.instance.getCategories();
     setState(() {
-      _categories = Categories;
+      _categories = subcategories;
       _isLoading = false; // Stop loading after fetching
     });
   }
+
+
+
 
   Future<void> _fetchCategoryExpenses() async {
     // Fetch expenses grouped by category for the current month
@@ -120,7 +124,7 @@ class _AccountListScreenState extends State<AccountListScreen> {
                           final isTouched = index == touchedIndex;
                           final categoryName = entry.key;
                           final amount = entry.value;
-                          final colorIndex = _categories.indexWhere((c) => c['name'] == categoryName);
+                          final colorIndex = _categories.indexWhere((c) => c['subcategory'] == categoryName);
                           final color = colorIndex >= 0
                               ? Colors.primaries[colorIndex % Colors.primaries.length]
                               : Colors.grey;

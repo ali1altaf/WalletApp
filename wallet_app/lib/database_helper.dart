@@ -18,7 +18,7 @@ class DatabaseHelper {
     final path = await getDatabasesPath();
     return openDatabase(
       join(path, 'accounts.db'),
-      version: 3, // Increment version to trigger onUpgrade
+      version: 1, // Increment version to trigger onUpgrade
       onCreate: _createDatabase,
       onUpgrade: _upgradeDatabase,
     );
@@ -43,6 +43,7 @@ class DatabaseHelper {
           date TEXT NOT NULL,
           type TEXT NOT NULL, -- 'credit' or 'debit'
           category_id INTEGER NOT NULL DEFAULT 1,
+          subcategory TEXT,
           FOREIGN KEY (account_id) REFERENCES accounts (id),
           FOREIGN KEY (category_id) REFERENCES CategoryTable (id)
 );
@@ -53,19 +54,29 @@ class DatabaseHelper {
     await db.execute('''
       CREATE TABLE CategoryTable (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT UNIQUE
+        name TEXT,
+        subcategory TEXT,
       )
     ''');
   }
 
   /// Upgrade the database schema
   Future<void> _upgradeDatabase(Database db, int oldVersion, int newVersion) async {
-    if (oldVersion < 2) {
+
+    await db.execute('''
+      CREATE TABLE CategoryTable (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT,
+        subcategory TEXT,
+      )
+    ''');
+
+    if (oldVersion < 3) {
       await db.execute('''
         ALTER TABLE transactions ADD COLUMN category_id INTEGER NOT NULL DEFAULT 1 REFERENCES CategoryTable (id)
       ''');
-
     }
+
   }
 
 
@@ -145,35 +156,156 @@ class DatabaseHelper {
   /// Initialize default categories
   Future<void> initializeDefaultCategories() async {
     final db = await database;
+    //await db.delete('CategoryTable');
 
-    // List of default categories
+
+    // List of default categories with subcategories
     List<Map<String, dynamic>> defaultCategories = [
-      {'name': 'Food & Drinks'},
-      {'name': 'Shopping'},
-      {'name': 'Housing'},
-      {'name': 'Transportation'},
-      {'name': 'Vehicle'},
-      {'name': 'Life & Entertainment'},
-      {'name': 'Communication & PC'},
-      {'name': 'Financial Expense'},
-      {'name': 'Investment'},
-      {'name': 'Income'},
-      {'name': 'Transfer'},
+      {
+        'name': 'Food & Drinks',
+        'subcategories': ['Groceries', 'Restaurant', 'Fast Food', 'Meals']
+      },
+      {
+        'name': 'Shopping',
+        'subcategories': [
+          'Clothes',
+          'Shoes',
+          'Jewels',
+          'Accessories',
+          'Beauty/Apparels',
+          'Kids',
+          'Home',
+          'Pets/Animals',
+          'Electronics',
+          'Gifts',
+          'Stationery/Tools'
+        ]
+      },
+      {
+        'name': 'Housing',
+        'subcategories': [
+          'Rent',
+          'Mortgage',
+          'Energy/Utilities',
+          'Services',
+          'Maintenance/Repairs',
+          'Property Insurance'
+        ]
+      },
+      {
+        'name': 'Transportation',
+        'subcategories': ['Trips', 'Public Transport', 'Taxi/Cab', 'Flight']
+      },
+      {
+        'name': 'Vehicle',
+        'subcategories': [
+          'Fuel/Petrol',
+          'Parking',
+          'Vehicle Maintenance',
+          'Rental',
+          'Vehicle Insurance',
+          'Lease'
+        ]
+      },
+      {
+        'name': 'Medical',
+        'subcategories': [
+          'Chemist',
+          'Check-up/OPD',
+          'Surgery/Treatment',
+          'Healthcare'
+        ]
+      },
+      {
+        'name': 'Life & Entertainment',
+        'subcategories': [
+          'Life Events',
+          'Holidays/Trips/Hotels',
+          'TV/Streaming',
+          'Alcohol/Tobacco',
+          'Hobbies',
+          'Gambling'
+        ]
+      },
+      {
+        'name': 'Sports',
+        'subcategories': ['Active Sports/Fitness', 'Sports Events']
+      },
+      {
+        'name': 'Communication & PC',
+        'subcategories': [
+          'Phone/Cell Phone',
+          'Internet/WiFi',
+          'Software/Apps/Games',
+          'Postal Service'
+        ]
+      },
+      {
+        'name': 'Financial Expense',
+        'subcategories': [
+          'Taxes',
+          'Insurance',
+          'Loan/Interest',
+          'Fines',
+          'Advisory',
+          'Charges/Fee'
+        ]
+      },
+      {
+        'name': 'Investment',
+        'subcategories': [
+          'Real Estate',
+          'Collectables',
+          'Financial Investments',
+          'Savings'
+        ]
+      },
+      {
+        'name': 'Income',
+        'subcategories': [
+          'Wage/Income',
+          'Interest/Dividends',
+          'Sales (Assets)',
+          'Rental Income',
+          'Dues & Grants',
+          'Lending/Renting',
+          'Checks/Coupons',
+          'Lottery',
+          'Refunds (Tax/Purchase)',
+          'Gifts'
+        ]
+      },
+      {
+        'name': 'Transfer',
+        'subcategories': ['Friends', 'Family', 'General']
+      }
     ];
 
-    // Insert default categories if they don't already exist
+    // Insert default categories and subcategories
     for (var category in defaultCategories) {
+      String categoryName = category['name'];
+      List<String> subcategories = category['subcategories'];
+
+      // Insert category and its associated subcategories
       try {
-        await db.insert(
-          'CategoryTable',
-          category,
-          conflictAlgorithm: ConflictAlgorithm.ignore,
-        );
+        for (var subcategoryName in subcategories) {
+          await db.insert(
+            'CategoryTable',
+            {
+              'name': categoryName,
+              'subcategory': subcategoryName
+            },
+            conflictAlgorithm: ConflictAlgorithm.ignore,
+          );
+        }
       } catch (e) {
         // Handle insertion error (if any)
+        print('Error inserting category or subcategory: $e');
       }
     }
   }
+
+
 
 
   /// insert new categories
