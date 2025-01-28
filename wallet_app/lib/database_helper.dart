@@ -322,6 +322,7 @@ class DatabaseHelper {
   Future<List<Map<String, dynamic>>> getCategories() async {
     final db = await database;
     return db.query('CategoryTable');
+
   }
 
   Future<Map<String, double>> getMonthlyExpensesByCategory() async {
