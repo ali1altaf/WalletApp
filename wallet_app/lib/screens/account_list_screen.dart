@@ -124,7 +124,7 @@ class _AccountListScreenState extends State<AccountListScreen> {
                           final isTouched = index == touchedIndex;
                           final categoryName = entry.key;
                           final amount = entry.value;
-                          final colorIndex = _categories.indexWhere((c) => c['subcategory'] == categoryName);
+                          final colorIndex = _categories.indexWhere((c) => c['name'] == categoryName);
                           final color = colorIndex >= 0
                               ? Colors.primaries[colorIndex % Colors.primaries.length]
                               : Colors.grey;
