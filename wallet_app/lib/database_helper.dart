@@ -119,9 +119,9 @@ class DatabaseHelper {
     return db.delete('accounts', where: 'id = ?', whereArgs: [id]);
   }
 
-  /// Insert a new transaction
-  Future<int> insertTransaction(int accountId, String description, double amount, String date, String type, int categoryId,
-      ) async {
+  // Modify insertTransaction to include subcategory
+  Future<int> insertTransaction(int accountId, String description, double amount,
+      String date, String type, int categoryId, String? subcategory) async {
     final db = await database;
     return db.insert('transactions', {
       'account_id': accountId,
@@ -130,6 +130,7 @@ class DatabaseHelper {
       'date': date,
       'type': type,
       'category_id': categoryId,
+      'subcategory': subcategory,
     });
   }
 
