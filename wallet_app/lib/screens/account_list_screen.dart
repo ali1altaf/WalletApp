@@ -309,14 +309,12 @@ class _AccountListScreenState extends State<AccountListScreen> {
   }
 
 
-
-// Update _transactionDialog
   void _transactionDialog() {
     int? selectedAccountId = _defaultAccountId;
     int? destinationAccountId;
-    TextEditingController amountController = TextEditingController();
-    TextEditingController descriptionController = TextEditingController();
     String transactionType = "Expense";
+    TextEditingController amountController = TextEditingController(text: '0');
+    TextEditingController descriptionController = TextEditingController();
     String amountLabelText = 'Transaction Amount';
     String categoryLabelText = 'Select Category';
     String accountLabelText = 'Select Account';
@@ -333,11 +331,81 @@ class _AccountListScreenState extends State<AccountListScreen> {
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
-              title: Text('Add Transaction'),
+              title: Text('Add Record'),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    // Transaction Type Tab Switch
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: ["Expense", "Income", "Transfer"]
+                          .map((type) => Expanded(
+                        child: GestureDetector(
+                          onTap: () => setState(() {
+                            transactionType = type;
+                            amountController.text =
+                            transactionType == "Expense" ? '-0' : '0';
+                          }),
+                          child: Container(
+                            alignment: Alignment.center,
+                            padding: EdgeInsets.symmetric(vertical: 10),
+                            decoration: BoxDecoration(
+                              color: transactionType == type
+                                  ? Colors.blueAccent
+                                  : Colors.grey[200],
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              type,
+                              style: TextStyle(
+                                color: transactionType == type
+                                    ? Colors.white
+                                    : Colors.black,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ))
+                          .toList(),
+                    ),
+                    SizedBox(height: 10),
+
+                    // Amount Input with Currency Indicator
+                    Row(
+                      children: [
+                        Container(
+                          padding:
+                          EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[200],
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text('INR',
+                              style: TextStyle(fontWeight: FontWeight.bold)),
+                        ),
+                        SizedBox(width: 10),
+                        Expanded(
+                          child: TextField(
+                            controller: amountController,
+                            keyboardType: TextInputType.number,
+                            decoration: InputDecoration(
+                              labelText: amountLabelText,
+                              border: OutlineInputBorder(),
+                            ),
+                            onChanged: (value) {
+                              if (transactionType == "Expense" &&
+                                  !value.startsWith('-')) {
+                                amountController.text = '-$value';
+                              }
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 10),
+
                     // Account Dropdown
                     DropdownButtonFormField<int>(
                       value: selectedAccountId,
@@ -350,44 +418,7 @@ class _AccountListScreenState extends State<AccountListScreen> {
                       onChanged: (value) => setState(() => selectedAccountId = value),
                       hint: Text(accountLabelText),
                     ),
-
-                    // Transaction Type Dropdown
-                    DropdownButtonFormField<String>(
-                      value: transactionType,
-                      items: ["Expense", "Income", "Transfer"]
-                          .map((type) => DropdownMenuItem<String>(
-                        value: type,
-                        child: Text(type),
-                      ))
-                          .toList(),
-                      onChanged: (value) => setState(() {
-                        transactionType = value!;
-                        if (transactionType != "Transfer") destinationAccountId = null;
-                      }),
-                      hint: Text('Select Transaction Type'),
-                    ),
-
-                    // Destination Account (for transfers)
-                    if (transactionType == "Transfer")
-                      DropdownButtonFormField<int>(
-                        value: destinationAccountId,
-                        items: _accounts
-                            .where((account) => account['id'] != selectedAccountId)
-                            .map((account) => DropdownMenuItem<int>(
-                          value: account['id'],
-                          child: Text(account['name']),
-                        ))
-                            .toList(),
-                        onChanged: (value) => setState(() => destinationAccountId = value),
-                        hint: Text('Select Destination Account'),
-                      ),
-
-                    // Amount Field
-                    TextField(
-                      controller: amountController,
-                      keyboardType: TextInputType.number,
-                      decoration: InputDecoration(labelText: amountLabelText),
-                    ),
+                    SizedBox(height: 10),
 
                     // Category Dropdown
                     DropdownButtonFormField<String>(
@@ -400,22 +431,21 @@ class _AccountListScreenState extends State<AccountListScreen> {
                           .toList(),
                       onChanged: (value) => setState(() {
                         _selectedCategoryName = value;
-                        _selectedSubcategory = null; // Reset subcategory on category change
+                        _selectedSubcategory = null;
                       }),
                       hint: Text(categoryLabelText),
                     ),
+                    SizedBox(height: 10),
 
-                    // Subcategory Dropdown (only shows when category is selected)
+                    // Subcategory Dropdown (only when category is selected)
                     if (_selectedCategoryName != null)
                       DropdownButtonFormField<String?>(
                         value: _selectedSubcategory,
                         items: [
-                          // Null option
                           DropdownMenuItem<String?>(
                             value: null,
                             child: Text('No Subcategory'),
                           ),
-                          // Subcategories from selected category
                           ..._categories
                               .where((c) => c['name'] == _selectedCategoryName)
                               .map((c) => DropdownMenuItem<String?>(
@@ -426,17 +456,15 @@ class _AccountListScreenState extends State<AccountListScreen> {
                         onChanged: (value) => setState(() => _selectedSubcategory = value),
                         hint: Text('Select Subcategory'),
                       ),
+                    SizedBox(height: 10),
 
-                    // Description Field
+                    // Description Input
                     TextField(
                       controller: descriptionController,
-                      decoration: InputDecoration(labelText: 'Transaction Description'),
-                    ),
-
-                    // Add Category Button
-                    TextButton(
-                      onPressed: _showAddCategoryDialog,
-                      child: Text('Add Custom Category'),
+                      decoration: InputDecoration(
+                        labelText: 'Description',
+                        border: OutlineInputBorder(),
+                      ),
                     ),
                   ],
                 ),
@@ -448,14 +476,15 @@ class _AccountListScreenState extends State<AccountListScreen> {
                 ),
                 TextButton(
                   onPressed: () async {
-                    // Validation logic
+                    // Validation
                     if (selectedAccountId == null) {
                       setState(() => accountLabelText = 'Account is required!');
                       return;
                     }
 
-                    if (amountController.text.isEmpty) {
-                      setState(() => amountLabelText = 'Amount is required!');
+                    if (amountController.text.isEmpty ||
+                        double.tryParse(amountController.text) == null) {
+                      setState(() => amountLabelText = 'Valid amount is required!');
                       return;
                     }
 
@@ -464,13 +493,48 @@ class _AccountListScreenState extends State<AccountListScreen> {
                       return;
                     }
 
-                    // Get category ID (using first match for demo purposes)
                     final category = _categories.firstWhere(
                           (c) => c['name'] == _selectedCategoryName,
                       orElse: () => {'id': 1},
                     );
 
-                    // Insert transaction
+                    double transactionAmount = double.parse(amountController.text);
+
+                    // Update account balances based on transaction type
+                    if (transactionType == "Expense") {
+                      transactionAmount = transactionAmount.abs(); // Ensure it's positive
+                      await DatabaseHelper.instance.updateAccountBalance(
+                        selectedAccountId!,
+                        -transactionAmount,
+                      );
+                    } else if (transactionType == "Income") {
+                      transactionAmount = transactionAmount.abs();
+                      await DatabaseHelper.instance.updateAccountBalance(
+                        selectedAccountId!,
+                        transactionAmount,
+                      );
+                    } else if (transactionType == "Transfer" && destinationAccountId != null) {
+                      transactionAmount = transactionAmount.abs();
+
+                      // Deduct from source account
+                      await DatabaseHelper.instance.updateAccountBalance(
+                        selectedAccountId!,
+                        -transactionAmount,
+                      );
+
+                      // Add to destination account
+                      await DatabaseHelper.instance.updateAccountBalance(
+                        destinationAccountId!,
+                        transactionAmount,
+                      );
+                    }
+
+                    // Get category ID
+                    final categoryid = _categories.firstWhere(
+                          (c) => c['name'] == _selectedCategoryName,
+                      orElse: () => {'id': 1},
+                    );
+
                     await DatabaseHelper.instance.insertTransaction(
                       selectedAccountId!,
                       descriptionController.text,
@@ -481,7 +545,6 @@ class _AccountListScreenState extends State<AccountListScreen> {
                       _selectedSubcategory,
                     );
 
-                    // Update balances and UI
                     _fetchTransactions();
                     _fetchAccounts();
                     Navigator.pop(context);

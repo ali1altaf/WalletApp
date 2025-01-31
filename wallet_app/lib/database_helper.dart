@@ -115,6 +115,8 @@ class DatabaseHelper {
     );
   }
 
+
+
   /// Delete an account
   Future<int> deleteAccount(int id) async {
     final db = await database;
