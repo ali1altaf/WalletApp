@@ -396,8 +396,12 @@ class _AccountListScreenState extends State<AccountListScreen> {
                             ),
                             onChanged: (value) {
                               if (transactionType == "Expense" &&
-                                  !value.startsWith('-')) {
+                                  !value.startsWith('-') &&
+                                  value.isNotEmpty) {
                                 amountController.text = '-$value';
+                                amountController.selection =
+                                    TextSelection.fromPosition(TextPosition(
+                                        offset: amountController.text.length));
                               }
                             },
                           ),
