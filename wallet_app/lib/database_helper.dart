@@ -52,11 +52,12 @@ class DatabaseHelper {
     ''');
 
     await db.execute('''
-      CREATE TABLE CategoryTable (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT,
-        subcategory TEXT,
-      )
+      CREATE TABLE Category (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,
+  subcategory TEXT,
+  UNIQUE(name, subcategory) ON CONFLICT IGNORE
+)
     ''');
   }
 
@@ -64,16 +65,17 @@ class DatabaseHelper {
   Future<void> _upgradeDatabase(Database db, int oldVersion, int newVersion) async {
 
     await db.execute('''
-      CREATE TABLE CategoryTable (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT,
-        subcategory TEXT,
-      )
+      CREATE TABLE Category (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,
+  subcategory TEXT,
+  UNIQUE(name, subcategory) ON CONFLICT IGNORE
+)
     ''');
 
     if (oldVersion < 3) {
       await db.execute('''
-        ALTER TABLE transactions ADD COLUMN category_id INTEGER NOT NULL DEFAULT 1 REFERENCES CategoryTable (id)
+        ALTER TABLE transactions ADD COLUMN category_id INTEGER NOT NULL DEFAULT 1 REFERENCES Category (id)
       ''');
     }
 
@@ -291,7 +293,7 @@ class DatabaseHelper {
       try {
         for (var subcategoryName in subcategories) {
           await db.insert(
-            'CategoryTable',
+            'Category',
             {
               'name': categoryName,
               'subcategory': subcategoryName
@@ -313,7 +315,7 @@ class DatabaseHelper {
   Future<int> insertCategory(String name) async {
     final db = await database;
     return db.insert(
-      'CategoryTable',
+      'Category',
       {'name': name},
       conflictAlgorithm: ConflictAlgorithm.ignore,
     );
@@ -322,7 +324,7 @@ class DatabaseHelper {
   /// Fetch all categories
   Future<List<Map<String, dynamic>>> getCategories() async {
     final db = await database;
-    return db.query('CategoryTable');
+    return db.query('Category');
 
   }
 
@@ -337,14 +339,14 @@ class DatabaseHelper {
     // Query to get total expenses grouped by category for the current month
     final result = await db.rawQuery('''
     SELECT 
-      CategoryTable.name AS category_name,
+      Category.name AS category_name,
       SUM(transactions.amount) AS total_amount
     FROM 
       transactions
     INNER JOIN 
-      CategoryTable
+      Category
     ON 
-      transactions.category_id = CategoryTable.id
+      transactions.category_id = Category.id
     WHERE 
       transactions.date >= ? AND transactions.date <= ?
     GROUP BY 
