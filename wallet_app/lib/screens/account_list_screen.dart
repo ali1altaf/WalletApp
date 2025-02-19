@@ -504,34 +504,42 @@ class _AccountListScreenState extends State<AccountListScreen> {
 
                     double transactionAmount = double.parse(amountController.text);
 
+
+                    // Ensure the transaction amount is positive
+                    transactionAmount = transactionAmount.abs();
+
                     // Update account balances based on transaction type
-                    if (transactionType == "Expense") {
-                      transactionAmount = transactionAmount.abs(); // Ensure it's positive
-                      await DatabaseHelper.instance.updateAccountBalance(
-                        selectedAccountId!,
-                        -transactionAmount,
-                      );
-                    } else if (transactionType == "Income") {
-                      transactionAmount = transactionAmount.abs();
-                      await DatabaseHelper.instance.updateAccountBalance(
-                        selectedAccountId!,
-                        transactionAmount,
-                      );
+
+
+                    if (transactionType == "Income") {
+                      // Get the current balance for the account
+                      double currentBalance = await DatabaseHelper.instance.getAccountBalance(selectedAccountId!);
+                      // Calculate the new balance by adding the income
+                      double newBalance = currentBalance + transactionAmount;
+                      // Update the account balance with the new amount
+                      await DatabaseHelper.instance.updateAccountBalance(selectedAccountId!, newBalance);
+                    } else if (transactionType == "Expense") {
+                      // Get the current balance for the account
+                      double currentBalance = await DatabaseHelper.instance.getAccountBalance(selectedAccountId!);
+                      // Calculate the new balance by subtracting the expense
+                      double newBalance = currentBalance - transactionAmount;
+                      // Update the account balance with the new amount
+                      await DatabaseHelper.instance.updateAccountBalance(selectedAccountId!, newBalance);
                     } else if (transactionType == "Transfer" && destinationAccountId != null) {
-                      transactionAmount = transactionAmount.abs();
+                      // For transfers, adjust both source and destination accounts
 
                       // Deduct from source account
-                      await DatabaseHelper.instance.updateAccountBalance(
-                        selectedAccountId!,
-                        -transactionAmount,
-                      );
+                      double sourceCurrentBalance = await DatabaseHelper.instance.getAccountBalance(selectedAccountId!);
+                      double newSourceBalance = sourceCurrentBalance - transactionAmount;
+                      await DatabaseHelper.instance.updateAccountBalance(selectedAccountId!, newSourceBalance);
 
                       // Add to destination account
-                      await DatabaseHelper.instance.updateAccountBalance(
-                        destinationAccountId!,
-                        transactionAmount,
-                      );
+                      double destinationCurrentBalance = await DatabaseHelper.instance.getAccountBalance(destinationAccountId!);
+                      double newDestinationBalance = destinationCurrentBalance + transactionAmount;
+                      await DatabaseHelper.instance.updateAccountBalance(destinationAccountId!, newDestinationBalance);
                     }
+
+
 
                     // Get category ID
                     final categoryid = _categories.firstWhere(

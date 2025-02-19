@@ -151,6 +151,33 @@ class DatabaseHelper {
     );
   }
 
+
+  /// Fetch the current balance for a specific account
+  Future<double> getAccountBalance(int accountId) async {
+    final db = await database;
+    // Assuming the table name is 'accounts' and the balance column is 'balance'
+    final result = await db.query(
+      'accounts',
+      columns: ['balance'],
+      where: 'id = ?',
+      whereArgs: [accountId],
+    );
+
+    if (result.isNotEmpty) {
+      // Get the balance from the first row returned
+      final balance = result.first['balance'];
+      // Ensure the balance is returned as a double
+      if (balance is int) {
+        return balance.toDouble();
+      } else if (balance is double) {
+        return balance;
+      }
+    }
+    // If the account isn't found, return 0.0 or handle as needed
+    return 0.0;
+  }
+
+
   /// Delete a transaction
   Future<int> deleteTransaction(int id) async {
     final db = await database;
